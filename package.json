@@ -1,6 +1,6 @@
 {
   "name": "ut-port-wss",
-  "version": "7.1.0",
+  "version": "7.2.0",
   "main": "index.js",
   "dependencies": {
     "ws": "^7.2.0",
@@ -12,8 +12,7 @@
     "ut-run": "^10.29.0",
     "ut-tools": "^6.35.2"
   },
-  "peerDependencies": {
-  },
+  "peerDependencies": {},
   "scripts": {
     "lint": "ut-lint .",
     "release": "ut-release",

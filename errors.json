@@ -1,0 +1,7 @@
+{
+    "wss": "ws error",
+    "wss.invalidPath": "invalid path",
+    "wss.wrongRpcFormat": "wrong rpc format",
+    "wss.securityViolation": "security violation",
+    "ws.clientNotConnected": "client not connected"
+}

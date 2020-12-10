@@ -10,7 +10,7 @@
     "jose": "2.0.3",
     "tap": "^14.10.6",
     "ut-run": "^10.29.0",
-    "ut-tools": "^6.33.4"
+    "ut-tools": "^6.35.2"
   },
   "peerDependencies": {
   },

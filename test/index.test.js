@@ -48,6 +48,9 @@ require('ut-run').run({
                     ws.on('close', function clear() {
                         clearTimeout(this.pingTimeout);
                     });
+                    ws.on('message', data => {
+                        context.notification = JSON.parse(data); // check in next step
+                    });
                     return ws;
                 },
                 result(result, assert) {
@@ -57,17 +60,12 @@ require('ut-run').run({
             {
                 name: 'serverPush',
                 method: 'wss.test.push',
-                params: (context) => {
-                    context.ws.on('message', data => {
-                        context.notification = JSON.parse(data); // check in next step
-                    });
-                    return {
-                        actorId: jwtOptions.subject,
-                        method: 'test',
-                        params: {
-                            test: true
-                        }
-                    };
+                params: {
+                    actorId: jwtOptions.subject,
+                    method: 'test',
+                    params: {
+                        test: true
+                    }
                 },
                 result(result, assert) {
                     assert.ok(true, 'serverPush');

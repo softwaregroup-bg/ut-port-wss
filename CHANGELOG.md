@@ -1,3 +1,7 @@
+## [7.2.2](https://github.com/softwaregroup-bg/ut-port-wss/compare/v7.2.1...v7.2.2) (2021-06-16)
+
+
+
 ## [7.2.1](https://github.com/softwaregroup-bg/ut-port-wss/compare/v7.2.0...v7.2.1) (2020-12-11)
 
 

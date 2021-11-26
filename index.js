@@ -104,6 +104,19 @@ module.exports = function wss({registerErrors}) {
                     wss.emit('connection', ws, request);
                 });
             });
+
+            this.config.k8s = {
+                ports: [].concat(this.config.namespace).map((namespace) => ({
+                    name: 'http-' + namespace.replace(/\//, '-').toLowerCase(),
+                    service: true,
+                    ingress: (this.config.ingress || [this.config.path]).map(path => ({
+                        host: this.config.server.host,
+                        ...this.config.server.host && {name: this.config.server.host.replace(/\./g, '-')},
+                        path: path.replace(/\/\{.*/, '')
+                    })),
+                    containerPort: this.config.server.port
+                }))
+            };
             return super.init(...params);
         }
 

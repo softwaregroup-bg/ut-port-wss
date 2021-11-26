@@ -147,42 +147,38 @@ module.exports = function wss({registerErrors}) {
                     params
                 }));
             };
-            return []
-                .concat(this.config.namespace)
-                .filter(Boolean)
-                .reduce((handlers, namespace) => {
-                    return Object
-                        .entries(this.socketServers)
-                        .reduce((handlers, [path, wss]) => {
-                            const room = path.slice(1);
-                            const push = ({actorId, method, params}) => {
-                                for (const ws of wss.clients) {
-                                    if (ws.auth.actorId === actorId) {
-                                        if (ws.readyState !== WebSocket.OPEN) break;
-                                        // maybe implement ack
-                                        return send(ws, method, params);
-                                    }
-                                }
-                                throw this.errors['ws.clientNotConnected']();
-                            };
-                            return {
-                                ...handlers,
-                                [`${namespace}.${room}.list`]: () => {
-                                    return Array.from(wss.clients)
-                                        .filter(({readyState}) => readyState === WebSocket.OPEN)
-                                        .map(({auth}) => auth.actorId);
-                                },
-                                [`${namespace}.${room}.push`]: ({actorId, method, params}) => {
-                                    if (Array.isArray(actorId)) return actorId.map(actorId => push({actorId, method, params}));
-                                    return push({actorId, method, params});
-                                },
-                                [`${namespace}.${room}.broadcast`]: ({method, params}) => {
-                                    wss.clients.forEach(ws => {
-                                        if (ws.readyState === WebSocket.OPEN) return send(ws, method, params);
-                                    });
-                                }
-                            };
-                        }, handlers);
+
+            return Object
+                .entries(this.socketServers)
+                .reduce((handlers, [path, wss]) => {
+                    const [namespace, room] = path.split('/').slice(-2);
+                    const push = ({actorId, method, params}) => {
+                        for (const ws of wss.clients) {
+                            if (ws.auth.actorId === actorId) {
+                                if (ws.readyState !== WebSocket.OPEN) break;
+                                // maybe implement ack
+                                return send(ws, method, params);
+                            }
+                        }
+                        throw this.errors['ws.clientNotConnected']();
+                    };
+                    return {
+                        ...handlers,
+                        [`${namespace}.${room}.list`]: () => {
+                            return Array.from(wss.clients)
+                                .filter(({readyState}) => readyState === WebSocket.OPEN)
+                                .map(({auth}) => auth.actorId);
+                        },
+                        [`${namespace}.${room}.push`]: ({actorId, method, params}) => {
+                            if (Array.isArray(actorId)) return actorId.map(actorId => push({actorId, method, params}));
+                            return push({actorId, method, params});
+                        },
+                        [`${namespace}.${room}.broadcast`]: ({method, params}) => {
+                            wss.clients.forEach(ws => {
+                                if (ws.readyState === WebSocket.OPEN) return send(ws, method, params);
+                            });
+                        }
+                    };
                 }, {});
         }
     };

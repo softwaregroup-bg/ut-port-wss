@@ -57,8 +57,9 @@ module.exports = function wss({registerErrors}) {
 
             this.httpServer = http.createServer();
 
-            this.config.rooms.forEach(room => {
-                const wss = this.socketServers['/' + room] = new WebSocket.Server({ noServer: true });
+            [].concat(this.config.namespace).forEach(namespace => {
+                const wss = new WebSocket.Server({ noServer: true });
+                this.config.rooms.forEach(room => { this.socketServers[`/wss/${namespace}/${room}`] = wss; });
 
                 wss.on('connection', ws => {
                     ws.isAlive = true;
@@ -109,10 +110,10 @@ module.exports = function wss({registerErrors}) {
                 ports: [].concat(this.config.namespace).map((namespace) => ({
                     name: 'http-' + namespace.replace(/\//, '-').toLowerCase(),
                     service: true,
-                    ingress: (this.config.ingress || [this.config.path]).map(path => ({
+                    ingress: this.config.rooms.map(room => ({
                         host: this.config.server.host,
                         ...this.config.server.host && {name: this.config.server.host.replace(/\./g, '-')},
-                        path: path.replace(/\/\{.*/, '')
+                        path: `/wss/${namespace}/${room}`
                     })),
                     containerPort: this.config.server.port
                 }))

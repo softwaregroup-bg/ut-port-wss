@@ -58,24 +58,24 @@ module.exports = function wss({registerErrors}) {
             this.httpServer = http.createServer();
 
             [].concat(this.config.namespace).forEach(namespace => {
-                const wss = new WebSocket.Server({ noServer: true });
-                this.config.rooms.forEach(room => { this.socketServers[`/wss/${namespace}/${room}`] = wss; });
-
-                wss.on('connection', ws => {
-                    ws.isAlive = true;
-                    ws.on('pong', () => {
+                this.config.rooms.forEach(room => {
+                    const wss = this.socketServers[`/wss/${namespace}/${room}`] = new WebSocket.Server({ noServer: true });
+                    wss.on('connection', ws => {
                         ws.isAlive = true;
+                        ws.on('pong', () => {
+                            ws.isAlive = true;
+                        });
                     });
-                });
-                const interval = setInterval(() => {
-                    wss.clients.forEach(ws => {
-                        if (ws.isAlive === false) return ws.terminate();
-                        ws.isAlive = false;
-                        ws.ping(() => {});
-                    });
-                }, this.config.pingInterval);
+                    const interval = setInterval(() => {
+                        wss.clients.forEach(ws => {
+                            if (ws.isAlive === false) return ws.terminate();
+                            ws.isAlive = false;
+                            ws.ping(() => {});
+                        });
+                    }, this.config.pingInterval);
 
-                wss.on('close', () => clearInterval(interval));
+                    wss.on('close', () => clearInterval(interval));
+                });
             });
 
             this.httpServer.on('upgrade', (request, socket, head) => {

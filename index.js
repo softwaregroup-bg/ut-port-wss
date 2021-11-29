@@ -110,11 +110,11 @@ module.exports = function wss({registerErrors}) {
                 ports: [].concat(this.config.namespace).map((namespace) => ({
                     name: 'http-' + namespace.replace(/\//, '-').toLowerCase(),
                     service: true,
-                    ingress: this.config.rooms.map(room => ({
+                    ingress: [{
                         host: this.config.server.host,
                         ...this.config.server.host && {name: this.config.server.host.replace(/\./g, '-')},
-                        path: `/wss/${namespace}/${room}`
-                    })),
+                        path: `/wss/${namespace}`
+                    }],
                     containerPort: this.config.server.port
                 }))
             };

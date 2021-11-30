@@ -57,24 +57,25 @@ module.exports = function wss({registerErrors}) {
 
             this.httpServer = http.createServer();
 
-            this.config.rooms.forEach(room => {
-                const wss = this.socketServers['/' + room] = new WebSocket.Server({ noServer: true });
-
-                wss.on('connection', ws => {
-                    ws.isAlive = true;
-                    ws.on('pong', () => {
+            [].concat(this.config.namespace).forEach(namespace => {
+                this.config.rooms.forEach(room => {
+                    const wss = this.socketServers[`/wss/${namespace}/${room}`] = new WebSocket.Server({ noServer: true });
+                    wss.on('connection', ws => {
                         ws.isAlive = true;
+                        ws.on('pong', () => {
+                            ws.isAlive = true;
+                        });
                     });
-                });
-                const interval = setInterval(() => {
-                    wss.clients.forEach(ws => {
-                        if (ws.isAlive === false) return ws.terminate();
-                        ws.isAlive = false;
-                        ws.ping(() => {});
-                    });
-                }, this.config.pingInterval);
+                    const interval = setInterval(() => {
+                        wss.clients.forEach(ws => {
+                            if (ws.isAlive === false) return ws.terminate();
+                            ws.isAlive = false;
+                            ws.ping(() => {});
+                        });
+                    }, this.config.pingInterval);
 
-                wss.on('close', () => clearInterval(interval));
+                    wss.on('close', () => clearInterval(interval));
+                });
             });
 
             this.httpServer.on('upgrade', (request, socket, head) => {
@@ -104,6 +105,19 @@ module.exports = function wss({registerErrors}) {
                     wss.emit('connection', ws, request);
                 });
             });
+
+            this.config.k8s = {
+                ports: [].concat(this.config.namespace).map((namespace) => ({
+                    name: 'http-' + namespace.replace(/\//, '-').toLowerCase(),
+                    service: true,
+                    ingress: [{
+                        host: this.config.server.host,
+                        ...this.config.server.host && {name: this.config.server.host.replace(/\./g, '-')},
+                        path: `/wss/${namespace}`
+                    }],
+                    containerPort: this.config.server.port
+                }))
+            };
             return super.init(...params);
         }
 
@@ -133,42 +147,38 @@ module.exports = function wss({registerErrors}) {
                     params
                 }));
             };
-            return []
-                .concat(this.config.namespace)
-                .filter(Boolean)
-                .reduce((handlers, namespace) => {
-                    return Object
-                        .entries(this.socketServers)
-                        .reduce((handlers, [path, wss]) => {
-                            const room = path.slice(1);
-                            const push = ({actorId, method, params}) => {
-                                for (const ws of wss.clients) {
-                                    if (ws.auth.actorId === actorId) {
-                                        if (ws.readyState !== WebSocket.OPEN) break;
-                                        // maybe implement ack
-                                        return send(ws, method, params);
-                                    }
-                                }
-                                throw this.errors['ws.clientNotConnected']();
-                            };
-                            return {
-                                ...handlers,
-                                [`${namespace}.${room}.list`]: () => {
-                                    return Array.from(wss.clients)
-                                        .filter(({readyState}) => readyState === WebSocket.OPEN)
-                                        .map(({auth}) => auth.actorId);
-                                },
-                                [`${namespace}.${room}.push`]: ({actorId, method, params}) => {
-                                    if (Array.isArray(actorId)) return actorId.map(actorId => push({actorId, method, params}));
-                                    return push({actorId, method, params});
-                                },
-                                [`${namespace}.${room}.broadcast`]: ({method, params}) => {
-                                    wss.clients.forEach(ws => {
-                                        if (ws.readyState === WebSocket.OPEN) return send(ws, method, params);
-                                    });
-                                }
-                            };
-                        }, handlers);
+
+            return Object
+                .entries(this.socketServers)
+                .reduce((handlers, [path, wss]) => {
+                    const [namespace, room] = path.split('/').slice(-2);
+                    const push = ({actorId, method, params}) => {
+                        for (const ws of wss.clients) {
+                            if (ws.auth.actorId === actorId) {
+                                if (ws.readyState !== WebSocket.OPEN) break;
+                                // maybe implement ack
+                                return send(ws, method, params);
+                            }
+                        }
+                        throw this.errors['ws.clientNotConnected']();
+                    };
+                    return {
+                        ...handlers,
+                        [`${namespace}.${room}.list`]: () => {
+                            return Array.from(wss.clients)
+                                .filter(({readyState}) => readyState === WebSocket.OPEN)
+                                .map(({auth}) => auth.actorId);
+                        },
+                        [`${namespace}.${room}.push`]: ({actorId, method, params}) => {
+                            if (Array.isArray(actorId)) return actorId.map(actorId => push({actorId, method, params}));
+                            return push({actorId, method, params});
+                        },
+                        [`${namespace}.${room}.broadcast`]: ({method, params}) => {
+                            wss.clients.forEach(ws => {
+                                if (ws.readyState === WebSocket.OPEN) return send(ws, method, params);
+                            });
+                        }
+                    };
                 }, {});
         }
     };

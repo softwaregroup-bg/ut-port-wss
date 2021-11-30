@@ -36,7 +36,7 @@ require('ut-run').run({
             {
                 name: 'ws',
                 async params(context) {
-                    const ws = new WebSocket('ws://localhost:8044/test?access_token=' + jwt);
+                    const ws = new WebSocket('ws://localhost:8044/wss/wss/test?access_token=' + jwt);
                     function heartbeat() {
                         clearTimeout(this.pingTimeout);
                         this.pingTimeout = setTimeout(() => {

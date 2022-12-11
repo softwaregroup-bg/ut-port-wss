@@ -1,5 +1,5 @@
 const http = require('http');
-const { JWT } = require('jose');
+const { decodeJwt } = require('jose');
 const WebSocket = require('ws');
 const {URL} = require('url');
 module.exports = function wss({registerErrors}) {
@@ -93,7 +93,7 @@ module.exports = function wss({registerErrors}) {
 
                 const auth = {};
                 try {
-                    const decoded = JWT.decode(token, {complete: true}).payload;
+                    const decoded = decodeJwt(token);
                     auth.actorId = decoded.sub;
                     auth.sessionId = decoded.ses;
                 } catch (e) {

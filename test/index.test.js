@@ -1,10 +1,11 @@
 const WebSocket = require('ws');
-const { JWT, JWK } = require('jose');
+const { importJWK, SignJWT } = require('jose');
 const jwtPayload = {
     typ: 'Bearer',
     ses: 'f4279a1a-209c-4447-b0ed-53566737d51b'
 };
 const jwtKey = {
+    alg: 'EdDSA',
     crv: 'Ed25519',
     x: 'hhcGW1iHk_YWlNYDxn7P4PGV1N6mPjghBge4O7zterQ',
     d: 'KGpSfEzpbelEdQStQBlYmHPkHrG4cEcRx_yJZkRc_qY',
@@ -18,7 +19,6 @@ const jwtOptions = {
     audience: 'ut-bus',
     expiresIn: '900 seconds'
 };
-const jwt = JWT.sign(jwtPayload, JWK.asKey(jwtKey), jwtOptions);
 
 require('ut-run').run({
     main: require('..'),
@@ -36,6 +36,14 @@ require('ut-run').run({
             {
                 name: 'ws',
                 async params(context) {
+                    const jwt = await new SignJWT(jwtPayload)
+                        .setProtectedHeader({alg: jwtKey.alg})
+                        .setIssuedAt()
+                        .setAudience(jwtOptions.audience)
+                        .setExpirationTime(jwtOptions.expiresIn)
+                        .setIssuer(jwtOptions.issuer)
+                        .setSubject(jwtOptions.subject)
+                        .sign(await importJWK(jwtKey));
                     const ws = new WebSocket('ws://localhost:8044/wss/wss/test?access_token=' + jwt);
                     function heartbeat() {
                         clearTimeout(this.pingTimeout);
@@ -43,7 +51,6 @@ require('ut-run').run({
                             this.terminate();
                         }, 31000);
                     }
-                    ws.on('open', heartbeat);
                     ws.on('ping', heartbeat);
                     ws.on('close', function clear() {
                         clearTimeout(this.pingTimeout);
@@ -51,7 +58,7 @@ require('ut-run').run({
                     ws.on('message', data => {
                         context.notification = JSON.parse(data); // check in next step
                     });
-                    return ws;
+                    return new Promise(resolve => ws.on('open', () => resolve(ws)));
                 },
                 result(result, assert) {
                     assert.ok(result.url, 'ws');

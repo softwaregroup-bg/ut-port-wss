@@ -1,6 +1,6 @@
 {
   "name": "ut-port-wss",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "main": "index.js",
   "dependencies": {
     "jose": "4.11.0",

@@ -1,3 +1,7 @@
+## [8.0.1](https://github.com/softwaregroup-bg/ut-port-wss/compare/v8.0.0...v8.0.1) (2022-12-11)
+
+
+
 # [8.0.0](https://github.com/softwaregroup-bg/ut-port-wss/compare/v7.2.2...v8.0.0) (2021-11-30)
 
 
